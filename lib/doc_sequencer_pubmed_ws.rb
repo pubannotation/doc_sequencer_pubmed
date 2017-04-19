@@ -21,18 +21,18 @@ class DocSequencerPubMedWS < Sinatra::Base
 		sourcedb = params['sourcedb'].strip
 		sourceid = params['sourceid'].strip
 
-		doc =
+		divs, messages =
 			if (sourcedb.downcase == 'pubmed')
-				pubmed.get_doc(sourceid)
+				[pubmed.get_doc(sourceid), pubmed.messages]
 			elsif (sourcedb.downcase == 'pmc')
-				pmc.get_doc(sourceid)
+				[pmc.get_doc(sourceid), pmc.messages]
 			else
 				raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
 			end
 
 		result = {}
-		result[:docs] = docs unless docs.nil? || docs.empty?
-		result[:message] = messages unless messages.nil? || messages.empty?
+		result[:docs] = divs unless divs.nil? || divs.empty?
+		result[:messages] = messages unless messages.nil? || messages.empty?
 
 		headers \
 			'Content-Type' => 'application/json'
@@ -54,7 +54,7 @@ class DocSequencerPubMedWS < Sinatra::Base
 
 		sourcedb = params['sourcedb'].strip
 
-		docs, messages =
+		divs, messages =
 			if (sourcedb.downcase == 'pubmed')
 				[pubmed.get_docs(sourceids), pubmed.messages]
 			elsif (sourcedb.downcase == 'pmc')
@@ -64,25 +64,27 @@ class DocSequencerPubMedWS < Sinatra::Base
 			end
 
 		result = {}
-		result[:docs] = docs unless docs.nil? || docs.empty?
-		result[:message] = messages unless messages.nil? || messages.empty?
+		result[:docs] = divs unless divs.nil? || divs.empty?
+		result[:messages] = messages unless messages.nil? || messages.empty?
 
 		headers \
 			'Content-Type' => 'application/json'
 		body result.to_json
 	end
 
-	error RuntimeError do
-		headers \
-			'Content-Type' => 'application/json'
-		status 500 # Internal Server Error
-		{message: env['sinatra.error']}.to_json	
-	end
-
 	error ArgumentError do
 		headers \
 			'Content-Type' => 'application/json'
 		status 400 # Bad Request
-		{message: env['sinatra.error']}.to_json	
+		{messages: [env['sinatra.error']]}.to_json
 	end
+
+	# error RuntimeError do
+	error do
+		headers \
+			'Content-Type' => 'application/json'
+		status 500 # Internal Server Error
+		{messages: [env['sinatra.error']]}.to_json
+	end
+
 end

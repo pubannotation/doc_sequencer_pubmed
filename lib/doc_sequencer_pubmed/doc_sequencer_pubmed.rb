@@ -16,7 +16,7 @@ class DocSequencerPubMed
   end
 
   def get_doc(id)
-    docs = get_docs([id]).first
+    docs = get_docs([id])
   end
 
   def get_docs(ids)
@@ -69,10 +69,11 @@ class DocSequencerPubMed
     articles.map do |article|
       begin
         pmid = begin
-          pmid_nodes = article.find('.//PMID')
-          raise RuntimeError, "Encountered an article with multiple PMIDs" if pmid_nodes.size > 1
+          pmid_nodes = article.find('.//MedlineCitation/PMID')
           raise RuntimeError, "Encountered an article with no PMID" if pmid_nodes.size < 1
-          pmid_nodes.first.content.strip
+          id = pmid_nodes.first.content.strip
+          raise RuntimeError, "Encountered an article with multiple PMIDs: #{id}" if pmid_nodes.size > 1
+          id
         end
 
         title = begin
@@ -108,6 +109,7 @@ class DocSequencerPubMed
         {section:'TIAB', text:body, sourcedb:'PubMed', sourceid:pmid, source_url:source_url}
       rescue => e
         @messages << e.message
+        nil
       end
     end.compact
   end
@@ -129,11 +131,12 @@ if __FILE__ == $0
 
   accessor = DocSequencerPubMed.new
   # docs = accessor.get_docs(["24401455", "23790332"])
-  docs = accessor.get_docs(["24401455381719472", "23790332"])
+  # docs = accessor.get_docs(["24401455381719472", "23790332"])
   # docs = accessor.get_docs(["2440145501023"])
   # docs = accessor.get_doc("2440145501023")
-  # docs = accessor.get_doc("1394444")
+  docs = accessor.get_doc("7217012")
   pp docs
+  puts "---"
   pp accessor.messages
 
 

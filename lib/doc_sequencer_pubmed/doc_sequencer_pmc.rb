@@ -16,7 +16,7 @@ class DocSequencerPMC
   end
 
   def get_doc(id)
-    docs = get_docs([id]).first
+    docs = get_docs([id])
   end
 
   def get_docs(ids)
@@ -64,10 +64,8 @@ class DocSequencerPMC
     docs = articles.map do |article|
       begin
         pmcid = get_id(article)
-
-        comment = article.find_first('.//comment()').content
-        raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment =~ /The publisher of this article does not allow/
-
+        comment_node = article.find_first('.//comment()')
+        raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment_node && comment_node.content =~ /The publisher of this article does not allow/
         divs = get_divs(article)
         source_url = 'https://www.ncbi.nlm.nih.gov/pmc/' + pmcid
         divs.map{|div| div.merge({sourcedb:'PMC', sourceid:pmcid, source_url: source_url})}
@@ -420,21 +418,16 @@ if __FILE__ == $0
   optparse.parse!
 
   accessor = DocSequencerPMC.new
-  docs = accessor.get_docs(["9876543", "1064854"])
-  pp docs
 
+  ARGV.each do |id|
 
-  # ARGV.each do |id|
+    begin
+      docs = accessor.get_docs([id.strip])
+    rescue
+      warn $!
+      exit
+    end
 
-  #   begin
-  #     doc = DocSequencerPubMed.new(id)
-  #   rescue
-  #     warn $!
-  #     exit
-  #   end
-
-  #   p doc.source_url
-  #   puts '======'
-  #   p doc.divs
-  # end
+    pp docs
+  end
 end
