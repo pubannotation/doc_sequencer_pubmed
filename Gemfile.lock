@@ -2,12 +2,14 @@ GEM
   remote: https://rubygems.org/
   specs:
     diff-lcs (1.2.5)
+    kgio (2.11.0)
     libxml-ruby (2.8.0)
     net-http-persistent (2.9.4)
     puma (3.6.2)
     rack (1.6.5)
     rack-protection (1.5.3)
       rack
+    raindrops (0.17.0)
     rspec (3.5.0)
       rspec-core (~> 3.5.0)
       rspec-expectations (~> 3.5.0)
@@ -26,6 +28,9 @@ GEM
       rack-protection (~> 1.4)
       tilt (>= 1.3, < 3)
     tilt (2.0.5)
+    unicorn (5.2.0)
+      kgio (~> 2.6)
+      raindrops (~> 0.7)
 
 PLATFORMS
   ruby
@@ -36,6 +41,7 @@ DEPENDENCIES
   puma
   rspec
   sinatra
+  unicorn
 
 RUBY VERSION
    ruby 2.2.5p319
