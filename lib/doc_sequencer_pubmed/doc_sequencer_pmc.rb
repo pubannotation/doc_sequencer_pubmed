@@ -27,12 +27,18 @@ class DocSequencerPMC
     @messages = []
 
     xml_docs = retrieve_docs(ids)
+
     docs = extract_docs(xml_docs)
     return_ids = docs.map{|doc| doc[:sourceid]}.uniq
     if return_ids.length < ids.length
       missing_ids = ids - return_ids
       @messages << "Could not get #{missing_ids.length} #{missing_ids.length > 1 ? 'docs' : 'doc'}: #{missing_ids.join(', ')}"
     end
+
+    # unless @messages.empty?
+    #   puts @messages.join("\n-----\n")
+    #   exit
+    # end
 
     docs
   end
@@ -350,6 +356,7 @@ class DocSequencerPMC
     node.each_element do |e|
       case e.name
       when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc'
+      when 'styled-content'
       when 'xref', 'ext-link', 'uri', 'named-content'
       when 'fig', 'table-wrap'
       when 'statement' # TODO: check what it is
@@ -423,8 +430,8 @@ if __FILE__ == $0
 
     begin
       docs = accessor.get_docs([id.strip])
-    rescue
-      warn $!
+    rescue => e
+      warn e.message
       exit
     end
 
