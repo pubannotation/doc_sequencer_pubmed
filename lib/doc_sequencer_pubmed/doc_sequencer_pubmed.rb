@@ -107,6 +107,7 @@ class DocSequencerPubMed
               .join("\n")
 
           a += "\n" + o unless o.empty?
+          a
         end
 
         body  = ''
@@ -152,6 +153,8 @@ if __FILE__ == $0
   # docs = accessor.get_doc("28840671")
   # docs = accessor.get_doc("28837307") # book
   # docs = accessor.get_docs([28804172, 28804171, 28804170, 28804169, 28804168, 28804167])
+
+  docs = accessor.get_doc("1394444")
 
   pp docs
   puts "---"
