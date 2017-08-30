@@ -20,6 +20,7 @@ class DocSequencerPubMed
   end
 
   def get_docs(ids)
+    ids.map!{|id| id.to_s}
     ids.each{|id| raise ArgumentError, "'#{id}' is not a valid ID of PubMed" unless id =~ /^(PubMed|PMID)?[:-]?([1-9][0-9]*)$/}
     raise ArgumentError, "Too many ids: #{ids.length} > #{MAX_NUM_ID}" if ids.length > MAX_NUM_ID
     ids.map!{|id| id.sub(/(PubMed|PMID)[:-]?/, '')}
@@ -65,11 +66,13 @@ class DocSequencerPubMed
     parsed = parser.parse
 
     articles = parsed.find('/PubmedArticleSet/PubmedArticle')
+    articles = parsed.find('/PubmedArticleSet/PubmedBookArticle') if articles.empty?
 
     articles.map do |article|
       begin
         pmid = begin
           pmid_nodes = article.find('.//MedlineCitation/PMID')
+          pmid_nodes = article.find('.//BookDocument/PMID') if pmid_nodes.empty?
           raise RuntimeError, "Encountered an article with no PMID" if pmid_nodes.size < 1
           id = pmid_nodes.first.content.strip
           raise RuntimeError, "Encountered an article with multiple PMIDs: #{id}" if pmid_nodes.size > 1
@@ -83,21 +86,27 @@ class DocSequencerPubMed
           raise RuntimeError, "Encountered an article with multiple vernacular titles" if vtitle_nodes.size > 1
           t = ''
           t += title_nodes.first.content.strip if title_nodes.length == 1
-          t += vtitle_nodes.first.content.strip if vtitle_nodes.length == 1
+          if vtitle_nodes.length == 1
+            t += "\n" unless t.empty?
+            t += vtitle_nodes.first.content.strip
+          end
           t
         end
 
         abstract = begin
           abstractText_nodes = article.find('.//Abstract/AbstractText')
-          otherAbstractText_nodes = article.find('.//OtherAbstract/AbstractText')
-          raise RuntimeError, "Encountered an article with multiple otherAbstractText nodes" if otherAbstractText_nodes.size > 1
-          
+
           a = abstractText_nodes
               .map{|node| node['Label'].nil? ? node.content.strip : node['Label'] + ': ' + node.content.strip}
               .join("\n")
 
-          a += otherAbstractText_nodes.first.content.strip if otherAbstractText_nodes.length == 1
-          a
+          otherAbstractText_nodes = article.find('.//OtherAbstract[@language="eng"]/AbstractText')
+
+          o = otherAbstractText_nodes
+              .map{|node| node['Label'].nil? ? node.content.strip : node['Label'] + ': ' + node.content.strip}
+              .join("\n")
+
+          a += "\n" + o unless o.empty?
         end
 
         body  = ''
@@ -108,6 +117,7 @@ class DocSequencerPubMed
 
         {section:'TIAB', text:body, sourcedb:'PubMed', sourceid:pmid, source_url:source_url}
       rescue => e
+        puts e.message
         @messages << e.message
         nil
       end
@@ -134,7 +144,15 @@ if __FILE__ == $0
   # docs = accessor.get_docs(["24401455381719472", "23790332"])
   # docs = accessor.get_docs(["2440145501023"])
   # docs = accessor.get_doc("2440145501023")
-  docs = accessor.get_doc("7217012")
+
+  # docs = accessor.get_doc("28841741")
+  # docs = accessor.get_doc("28840900")
+  # docs = accessor.get_doc("28840673")
+  # docs = accessor.get_doc("28840672")
+  # docs = accessor.get_doc("28840671")
+  # docs = accessor.get_doc("28837307") # book
+  # docs = accessor.get_docs([28804172, 28804171, 28804170, 28804169, 28804168, 28804167])
+
   pp docs
   puts "---"
   pp accessor.messages
