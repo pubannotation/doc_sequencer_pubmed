@@ -21,7 +21,11 @@ class DocSequencerPubMed
 
   def get_docs(ids)
     ids.map!{|id| id.to_s}
-    ids.each{|id| raise ArgumentError, "'#{id}' is not a valid ID of PubMed" unless id =~ /^(PubMed|PMID)?[:-]?([1-9][0-9]*)$/}
+    invalid_ids = ids.select{|id| id !~ /^(PubMed|PMID)?[:-]?([1-9][0-9]*)$/}
+    unless invalid_ids.empty?
+      message = "#{invalid_ids.length} invalid id(s) found: #{invalid_ids[0, 5].join(', ')}" + invalid_ids.length > 5 ? '...' : '.'
+      raise ArgumentError, message
+    end
     raise ArgumentError, "Too many ids: #{ids.length} > #{MAX_NUM_ID}" if ids.length > MAX_NUM_ID
     ids.map!{|id| id.sub(/(PubMed|PMID)[:-]?/, '')}
 
@@ -33,7 +37,9 @@ class DocSequencerPubMed
     if docs.length < ids.length
       return_ids = docs.map{|doc| doc[:sourceid]}
       missing_ids = ids - return_ids
-      @messages << "Could not get #{missing_ids.length} #{missing_ids.length > 1 ? 'docs' : 'doc'}: #{missing_ids.join(', ')}"
+      missing_ids.each do |id|
+        @messages << {sourcedb:'PubMed', sourceid:id, body:"Could not get a document."}
+      end
     end
 
     docs
@@ -119,7 +125,7 @@ class DocSequencerPubMed
         {section:'TIAB', text:body, sourcedb:'PubMed', sourceid:pmid, source_url:source_url}
       rescue => e
         puts e.message
-        @messages << e.message
+        @messages << {body: e.message}
         nil
       end
     end.compact
