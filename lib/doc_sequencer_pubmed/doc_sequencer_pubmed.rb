@@ -38,7 +38,7 @@ class DocSequencerPubMed
       return_ids = docs.map{|doc| doc[:sourceid]}
       missing_ids = ids - return_ids
       missing_ids.each do |id|
-        @messages << {sourcedb:'PubMed', sourceid:id, body:"Could not get a document."}
+        @messages << {sourcedb:'PubMed', sourceid:id, body:"Could not get the document."}
       end
     end
 
