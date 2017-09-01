@@ -54,14 +54,13 @@ class DocSequencerPubMedWS < Sinatra::Base
 
 		sourcedb = params['sourcedb'].strip
 
-		divs, messages =
-			if (sourcedb.downcase == 'pubmed')
-				[pubmed.get_docs(sourceids), pubmed.messages]
-			elsif (sourcedb.downcase == 'pmc')
-				[pmc.get_docs(sourceids), pmc.messages]
-			else
-				raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
-			end
+		divs, messages = if (sourcedb.downcase == 'pubmed')
+			[pubmed.get_docs(sourceids), pubmed.messages]
+		elsif (sourcedb.downcase == 'pmc')
+			[pmc.get_docs(sourceids), pmc.messages]
+		else
+			raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
+		end
 
 		result = {}
 		result[:docs] = divs unless divs.nil? || divs.empty?
