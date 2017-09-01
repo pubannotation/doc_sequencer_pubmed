@@ -34,6 +34,8 @@ class DocSequencerPubMed
     xml_docs = retrieve_docs(ids)
     docs = extract_docs(xml_docs)
 
+    docs.keep_if{|doc| ids.include? doc[:sourceid]}
+
     if docs.length < ids.length
       return_ids = docs.map{|doc| doc[:sourceid]}
       missing_ids = ids - return_ids
@@ -64,7 +66,6 @@ class DocSequencerPubMed
     results = @http.request uri
     results.body
   end
-
 
   def extract_docs(xml_docs)
     return [] if xml_docs.nil?
