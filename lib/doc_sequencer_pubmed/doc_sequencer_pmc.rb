@@ -99,53 +99,52 @@ class DocSequencerPMC
     title    = get_title(article)
     abstract = get_abstract(article)
     secs     = get_secs(article)
-    psec     = (secs and secs[0].is_a?(Array))? secs.shift : nil 
+    fgroup   = article.find_first('.//floats-group') # floats group
 
-    raise 'could not find the title' if title.nil?
-    raise 'could not find the abstract' if abstract.nil?
+    raise 'could not find a title' if title.nil?
     raise 'could not find a section' if secs.nil? || secs.empty?
+
+    psec     = (secs and secs[0].is_a?(Array))? secs.shift : nil
 
     # extract captions
     caps = []
 
     if psec
       psec.each do |p|
-        figs = p.find('.//fig')
-        tbls = p.find('.//table-wrap')
+        if p.name == 'fig' || p.name == 'table-wrap'
+          caps << get_caption(p)
+        else
+          figs = p.find('.//fig')
+          tbls = p.find('.//table-wrap')
 
-        figs.each do |f|
-          label   = f.find_first('./label').content.strip
-          caption = f.find_first('./caption')
-          caps << {section: 'Caption-' + label, text: get_text(caption)}
+          figs.each {|f| caps << get_caption(f)}
+          tbls.each {|t| caps << get_caption(t)}
+
+          figs.each {|f| f.remove!}
+          tbls.each {|t| t.remove!}
         end
-
-        tbls.each do |t|
-          label   = t.find_first('./label').content.strip
-          caption = t.find_first('./caption')
-          caps << {section: 'Caption-' + label, text: get_text(caption)}
-        end
-
-        figs.each {|f| f.remove!}
-        tbls.each {|t| t.remove!}
       end
+
+      psec.delete_if{|p| p.name == 'fig' || p.name == 'table-wrap'}
     end
 
-    # extract figures and tables
     secs.each do |sec|
       figs = sec.find('.//fig')
       tbls = sec.find('.//table-wrap')
 
-      figs.each do |f|
-        label   = f.find_first('./label').content.strip
-        caption = f.find_first('./caption')
-        caps << {section: 'Caption-' + label, text: get_text(caption)}
-      end
+      figs.each {|f| caps << get_caption(f)}
+      tbls.each {|t| caps << get_caption(t)}
 
-      tbls.each do |t|
-        label   = t.find_first('./label').content.strip
-        caption = t.find_first('./caption')
-        caps << {section: 'Caption-' + label, text: get_text(caption)}
-      end
+      figs.each {|f| f.remove!}
+      tbls.each {|t| t.remove!}
+    end
+
+    if fgroup
+      figs = fgroup.find('.//fig')
+      tbls = fgroup.find('.//table-wrap')
+
+      figs.each {|f| caps << get_caption(f)}
+      tbls.each {|t| caps << get_caption(t)}
 
       figs.each {|f| f.remove!}
       tbls.each {|t| t.remove!}
@@ -153,7 +152,7 @@ class DocSequencerPMC
 
     divs = []
 
-    divs << {section: 'TIAB', text: get_text(title) + "\n" + get_text(abstract)}
+    divs << {section: 'TIAB', text: get_text(title) + "\n" + get_text(abstract)} if abstract
 
     if psec
       text = ''
@@ -167,7 +166,7 @@ class DocSequencerPMC
       stitle.remove!
 
       ps      = sec.find('./p')
-      subsecs = sec.find('./sec')
+      subsecs = sec.find('./sec | ./boxed-text/sec')
 
       # remove dummy section
       if subsecs.length == 1
@@ -193,7 +192,19 @@ class DocSequencerPMC
     divs.each{|d| d[:text].strip!}
     divs.each_with_index{|d, i| d[:divid] = i}
 
+    raise RuntimeError, "Empty document" if divs.empty?
+
     return divs
+  end
+
+
+  def get_caption(element)
+    label   = begin
+      l = element.find_first('./label')
+      l.nil? ? 'Caption' : 'Caption-' + l.content.strip
+    end
+    caption = element.find_first('./caption')
+    {section: label, text: get_text(caption)} if caption
   end
 
 
@@ -210,7 +221,9 @@ class DocSequencerPMC
 
   def get_abstract(article)
     abstracts = article.find('.//front/article-meta/abstract')
-    raise RuntimeError, "no abstract" if abstracts.nil? || abstracts.empty?
+
+    # There are cases where there is no abstract (PMC3370949)
+    return nil if abstracts.nil? || abstracts.empty?
 
     if abstracts.length == 1
       abstract = abstracts.first
@@ -237,14 +250,14 @@ class DocSequencerPMC
 
       body.each_element do |e|
         case e.name
-        when 'p'
+        when 'p', 'fig', 'table-wrap' # 'fig' case: PMC3417396
           if secs.empty?
             psec << e
           else
-            raise RuntimeError, "a <p> element between <sec> elements"
+            raise RuntimeError, "a <#{e.name}> element between <sec> elements"
           end
         when 'sec'
-          secs << psec if secs.empty? and !psec.empty?
+          secs << psec if secs.empty? && !psec.empty?
 
           title = e.find_first('title').content.strip.downcase
           case title
@@ -258,11 +271,14 @@ class DocSequencerPMC
             end
           end
         when 'supplementary-material'
+        when 'disp-quote'
         else
-          raise RuntimeError, "an element out of sec: #{e.name}"
+          raise RuntimeError, "an unexpected element out of sec: #{e.name}"
           return nil
         end
       end
+
+      secs << psec if secs.empty? && !psec.empty?
 
       if secs.empty?
         return nil
@@ -284,8 +300,10 @@ class DocSequencerPMC
         return false unless check_title(e)
       when 'label'
       when 'disp-formula'
+      when 'disp-quote' # PMC3417391
       when 'graphic'
       when 'list'
+      when 'boxed-text'
       when 'p'
         return false unless check_p(e)
       when 'sec'
@@ -294,10 +312,9 @@ class DocSequencerPMC
         return false unless check_float(e)
       else
         raise RuntimeError, "a unexpected element in sec (#{title}): #{e.name}"
-        return false
       end
     end
-    return true
+    true
   end
 
 
@@ -331,7 +348,6 @@ class DocSequencerPMC
         return false unless check_subsec(e)
       else
         raise RuntimeError, "a unexpected element in abstract: #{e.name}"
-        return false
       end
     end
     return true
@@ -341,11 +357,10 @@ class DocSequencerPMC
   def check_title(node)
     node.each_element do |e|
       case e.name
-      when 'italic', 'bold', 'sup', 'sub', 'underline'
+      when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc'
       when 'xref', 'named-content'
       else
-        raise RuntimeError, "a unexpected element in title: #{e.name}"
-        return false
+        raise RuntimeError, "a unexpected element in title: #{e.name}\n#{get_text(node)}"
       end
     end
     return true
@@ -359,11 +374,11 @@ class DocSequencerPMC
       when 'styled-content'
       when 'xref', 'ext-link', 'uri', 'named-content'
       when 'fig', 'table-wrap'
+      when 'graphic' # PMC3417534
       when 'statement' # TODO: check what it is
       when 'inline-graphic', 'disp-formula', 'inline-formula' # TODO: check if it can be ignored.
       else
         raise RuntimeError, "a unexpected element in p: #{e.name}"
-        return false
       end
     end
     return true
@@ -374,25 +389,23 @@ class DocSequencerPMC
     labels   = node.find('./label')
     captions = node.find('./caption')
 
-    if labels.length == 1 and captions.length == 1
-      label   = labels.first
-      caption = captions.first
+    raise RuntimeError, "There are #{captions.length} captions" unless captions.length == 1
+    # There are cases where label does not exist, e.g., PMC3370950
 
-      caption.each_element do |e|
-        case e.name
-        when 'title'
-          return false unless check_title(e)
-        when 'p'
-          return false unless check_p(e)
-        else
-          raise RuntimeError, "a unexpected element in caption: #{e.name}"
-          return false
-        end
+    caption = captions.first
+
+    caption.each_element do |e|
+      case e.name
+      when 'title'
+        return false unless check_title(e)
+      when 'p'
+        return false unless check_p(e)
+      else
+        raise RuntimeError, "a unexpected element in caption: #{e.name}"
+        return false
       end
-      return true
-    else
-      return false
     end
+    true
   end
 
 
