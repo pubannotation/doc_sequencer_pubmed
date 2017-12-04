@@ -27,6 +27,8 @@ class DocSequencerPMC
     @messages = []
 
     xml_docs = retrieve_docs(ids)
+    # puts xml_docs
+    # puts "-----"
 
     docs = extract_docs(xml_docs)
     return_ids = docs.map{|doc| doc[:sourceid]}.uniq
@@ -52,6 +54,10 @@ class DocSequencerPMC
 
     parser = XML::Parser.string(response.body, :encoding => XML::Encoding::UTF_8)
     doc = parser.parse
+
+    messages = doc.find('.//OutputMessage')
+    @messages += messages.collect{|m| m.content.strip}
+
     web = doc.find_first('WebEnv').content.strip
     key = doc.find_first('QueryKey').content.strip
 
@@ -125,7 +131,7 @@ class DocSequencerPMC
         end
       end
 
-      psec.delete_if{|p| p.name == 'fig' || p.name == 'table-wrap'}
+      psec.delete_if {|p| p.name == 'fig' || p.name == 'table-wrap'}
     end
 
     secs.each do |sec|
@@ -150,14 +156,15 @@ class DocSequencerPMC
       tbls.each {|t| t.remove!}
     end
 
+    caps.compact!
+
     divs = []
 
-    divs << {section: 'TIAB', text: get_text(title) + "\n" + get_text(abstract)} if abstract
+    divs << {section: 'TIAB', text: get_text(title) + "\n" + get_text(abstract)} if title || abstract
 
     if psec
-      text = ''
-      psec.each {|p| text += get_text(p)}
-      divs << {section: "INTRODUCTION", text: text}
+      text = psec.collect {|p| get_text(p)}.join("\n")
+      divs << {section: "Body", text: text}
     end
 
     secs.each do |sec|
@@ -189,7 +196,7 @@ class DocSequencerPMC
     end
 
     divs += caps
-    divs.each{|d| d[:text].strip!}
+    divs.each{|d| d[:text] = d[:text].strip.gsub(/ +/, ' ').gsub(/ \n/, "\n").gsub(/\n /, "\n").gsub(/\n+/, "\n")}
     divs.each_with_index{|d, i| d[:divid] = i}
 
     raise RuntimeError, "Empty document" if divs.empty?
@@ -250,7 +257,11 @@ class DocSequencerPMC
 
       body.each_element do |e|
         case e.name
-        when 'p', 'fig', 'table-wrap' # 'fig' case: PMC3417396
+
+        # 'fig' case: PMC3417396
+        # 'list' case: PMC4063857
+        # 'disp-formula' : PMC4103545
+        when 'p', 'list', 'fig', 'table-wrap', 'disp-formula'
           if secs.empty?
             psec << e
           else
@@ -264,10 +275,14 @@ class DocSequencerPMC
           # filtering by title
           when /contributions$/, /supplementary/, /abbreviations/, 'competing interests', 'supporting information', 'additional information', 'funding'
           else
-            if check_sec(e)
-              secs << e
+            case e["sec-type"]
+            when 'supplementary-material' # PMC4159038, PMC4159043, PMC4262357, PMC4262369
             else
-              raise RuntimeError, "a unexpected structure of <sec>"
+              if check_sec(e)
+                secs << e
+              else
+                raise RuntimeError, "a unexpected structure of <sec>"
+              end
             end
           end
         when 'supplementary-material'
@@ -359,6 +374,7 @@ class DocSequencerPMC
       case e.name
       when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc'
       when 'xref', 'named-content'
+      when 'inline-formula' # TODO: check if it can be ignored.
       else
         raise RuntimeError, "a unexpected element in title: #{e.name}\n#{get_text(node)}"
       end
@@ -370,10 +386,11 @@ class DocSequencerPMC
   def check_p(node)
     node.each_element do |e|
       case e.name
-      when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc'
+      when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc', 'monospace'
       when 'styled-content'
-      when 'xref', 'ext-link', 'uri', 'named-content'
-      when 'fig', 'table-wrap'
+      when 'xref', 'ext-link', 'uri', 'named-content', 'email'
+      when 'list' # PMC4114466, TODO: list-type=order
+      when 'fig', 'table-wrap', 'fig-group'
       when 'graphic' # PMC3417534
       when 'statement' # TODO: check what it is
       when 'inline-graphic', 'disp-formula', 'inline-formula' # TODO: check if it can be ignored.
@@ -389,8 +406,11 @@ class DocSequencerPMC
     labels   = node.find('./label')
     captions = node.find('./caption')
 
-    raise RuntimeError, "There are #{captions.length} captions" unless captions.length == 1
+    # raise RuntimeError, "There are #{captions.length} captions" unless captions.length == 1
     # There are cases where label does not exist, e.g., PMC3370950
+
+    # There are cases where caption does not exist, e.g., PMC4688367
+    return true if captions.empty?
 
     caption = captions.first
 
@@ -408,8 +428,29 @@ class DocSequencerPMC
     true
   end
 
-
   def get_text (node)
+    return '' if node.nil?
+
+    text = ''
+    node.each do |e|
+      if e.node_type_name == 'text'
+        text += e.content.gsub(/\n/, ' ')
+      elsif e.node_type_name == 'element'
+        text += "\n" if e.name == 'sec' || e.name == 'title' || e.name == 'p'
+        text += get_text(e)
+        text += "\n" if e.name == 'sec' || e.name == 'title' || e.name == 'p'
+      end
+    end
+
+    case node.name
+    when 'article-title', 'abstract', 'sec', 'title', 'p'
+      text.strip!
+    end
+
+    text
+  end
+
+  def get_text_old (node)
     text = ''
     node.each do |e|
       if e.node_type_name == 'element' && (e.name == 'sec' || e.name == 'list' || e.name == 'list-item')
@@ -440,14 +481,14 @@ if __FILE__ == $0
   accessor = DocSequencerPMC.new
 
   ARGV.each do |id|
-
     begin
       docs = accessor.get_docs([id.strip])
     rescue => e
       warn e.message
       exit
     end
-
+    pp accessor.messages
+    puts "-----"
     pp docs
   end
 end
