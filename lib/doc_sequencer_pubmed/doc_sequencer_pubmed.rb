@@ -10,8 +10,9 @@ class DocSequencerPubMed
 
   def initialize
     base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-    @esearch_url = base_url + 'esearch.fcgi?db=pubmed&usehistory=y'
-    @efetch_url = base_url + 'efetch.fcgi?db=pubmed&retmode=xml'
+    ncbi_api_key = ENV['NCBI_API_KEY']
+    @esearch_url = base_url + "esearch.fcgi?db=pubmed&usehistory=y&api_key=#{ncbi_api_key}"
+    @efetch_url = base_url + "efetch.fcgi?db=pubmed&retmode=xml&api_key=#{ncbi_api_key}"
     @http = Net::HTTP::Persistent.new
   end
 
