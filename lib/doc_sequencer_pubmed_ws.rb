@@ -3,12 +3,17 @@
 require 'sinatra/base'
 require 'doc_sequencer_pubmed'
 require 'doc_sequencer_pmc'
+require 'doc_sequencer_first_author'
+require 'doc_sequencer_gray_anatomy'
 require 'json'
 
 class DocSequencerPubMedWS < Sinatra::Base
 
 	pubmed = DocSequencerPubMed.new
 	pmc = DocSequencerPMC.new
+	firstauthor = DocSequencerFirstAuthor.new
+	grayanatomy = DocSequencerGrayAnatomy.new
+
 
 	configure do
 		set :show_exceptions, :after_handler
@@ -26,6 +31,10 @@ class DocSequencerPubMedWS < Sinatra::Base
 				[pubmed.get_doc(sourceid), pubmed.messages]
 			elsif (sourcedb.downcase == 'pmc')
 				[pmc.get_doc(sourceid), pmc.messages]
+			elsif (sourcedb.downcase == 'firstauthor')
+				[firstauthor.get_doc(sourceid), firstauthor.messages]
+			elsif (sourcedb.downcase == 'grayanatomy')
+				[grayanatomy.get_doc(sourceid), grayanatomy.messages]
 			else
 				raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
 			end
@@ -58,6 +67,10 @@ class DocSequencerPubMedWS < Sinatra::Base
 			[pubmed.get_docs(sourceids), pubmed.messages]
 		elsif (sourcedb.downcase == 'pmc')
 			[pmc.get_docs(sourceids), pmc.messages]
+		elsif (sourcedb.downcase == 'firstauthor')
+			[firstauthor.get_docs(sourceids), firstauthor.messages]
+		elsif (sourcedb.downcase == 'grayanatomy')
+			[grayanatomy.get_docs(sourceids), grayanatomy.messages]
 		else
 			raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
 		end

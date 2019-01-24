@@ -5,7 +5,8 @@ gem 'sinatra'
 
 gem 'net-http-persistent', '~> 2.9', '>= 2.9.4'
 gem 'libxml-ruby'
-#gem 'nokogiri'
+gem 'nokogiri'
+gem 'oga', '~> 2.2'
 
 group :production do
 	gem 'unicorn'
