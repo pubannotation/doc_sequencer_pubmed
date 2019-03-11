@@ -50,9 +50,8 @@ class DocSequencerGrayAnatomy
   def get_title(article)
     article.match(/BEGIN CHAPTERTITLE(.*)END CHAPTERTITLE/m)
     title_area = $1
-    title_area.match(%r|<FONT SI
-      ZE="+2"><BR><B>(.*)</B></FONT>|)
-    title_area.match(%r|<B>(.*)</B>|)
+    title_area.match(%r|<font size="+2"><br><b>(.*)</b></font>|)
+    title_area.match(%r|<b>(.*)</b>|)
     title = $1
   end
 
@@ -88,10 +87,11 @@ class DocSequencerGrayAnatomy
     chapter.gsub!(/ \n/, "\n")
     chapter.gsub!(/\n+/, "\n")
     chapter.gsub!(/^\n/, "")
+    chapter.gsub!(/\n$/, "")
 
-    puts "-----r"
-    puts chapter
-    puts "-----x"
+    # puts "-----r"
+    # puts chapter
+    # puts "-----x"
 
     chapter
   end
@@ -112,8 +112,8 @@ if __FILE__ == $0
   optparse.parse!
 
   accessor = DocSequencerGrayAnatomy.new
-  doc = accessor.get_doc("17")
-  p doc[:body]
+  doc = accessor.get_doc("3")
+  p doc
 
 
   # ARGV.each do |id|
