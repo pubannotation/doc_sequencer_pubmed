@@ -106,11 +106,11 @@ class DocSequencerPMC
   def get_divs(article)
     title    = get_title(article)
     abstract = get_abstract(article)
-    secs     = get_secs(article)
+    secs     = get_secs(article) || []
     fgroup   = article.find_first('.//floats-group') # floats group
 
     raise 'could not find a title' if title.nil?
-    raise 'could not find a section' if secs.nil? || secs.empty?
+    # raise 'could not find a section' if secs.nil? || secs.empty?
 
     psec     = (secs and secs[0].is_a?(Array))? secs.shift : nil
 
