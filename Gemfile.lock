@@ -14,7 +14,7 @@ GEM
     oga (2.15)
       ast
       ruby-ll (~> 2.1)
-    puma (3.12.0)
+    puma (3.12.6)
     rack (2.0.6)
     rack-protection (2.0.4)
       rack
