@@ -171,8 +171,12 @@ class DocSequencerPMC
 
     secs.each do |sec|
       stitle  = sec.find_first('./title')
-      label   = stitle.content.strip
-      stitle.remove!
+      label   = if stitle.nil?
+        ''
+      else
+        stitle.content.strip
+        stitle.remove!
+      end
 
       ps      = sec.find('./p')
       subsecs = sec.find('./sec | ./boxed-text/sec')
@@ -272,7 +276,13 @@ class DocSequencerPMC
         when 'sec'
           secs << psec if secs.empty? && !psec.empty?
 
-          title = e.find_first('title').content.strip.downcase
+          title_e = e.find_first('title')
+          title = if title_e.nil?
+            ''
+          else
+            title_e.content.strip.downcase
+          end
+
           case title
           # filtering by title
           when /contributions$/, /supplementary/, /abbreviations/, 'competing interests', 'supporting information', 'additional information', 'funding'
@@ -283,10 +293,11 @@ class DocSequencerPMC
               if check_sec(e)
                 secs << e
               else
-                raise RuntimeError, "a unexpected structure of <sec>"
+                raise RuntimeError, "an unexpected structure of <sec>"
               end
             end
           end
+
         when 'supplementary-material'
         when 'disp-quote'
         else
