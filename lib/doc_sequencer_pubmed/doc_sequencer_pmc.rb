@@ -396,6 +396,7 @@ class DocSequencerPMC
       when 'graphic' # PMC3417534
       when 'statement' # TODO: check what it is
       when 'inline-graphic', 'disp-formula', 'inline-formula' # TODO: check if it can be ignored.
+      when 'funding-source' # PMC7189856
       else
         raise RuntimeError, "a unexpected element in p: #{e.name}"
       end
