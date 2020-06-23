@@ -29,8 +29,8 @@ class DocSequencerPMC
     @messages = []
 
     xml_docs = retrieve_docs(ids)
-    # puts xml_docs
-    # puts "-----"
+    puts xml_docs
+    puts "-----"
 
     docs = extract_docs(xml_docs)
     return_ids = docs.map{|doc| doc[:sourceid]}.uniq
@@ -385,7 +385,7 @@ class DocSequencerPMC
   def check_title(node)
     node.each_element do |e|
       case e.name
-      when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc'
+      when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc', 'styled-content'
       when 'xref', 'named-content'
       when 'inline-formula' # TODO: check if it can be ignored.
       else
@@ -400,6 +400,7 @@ class DocSequencerPMC
     node.each_element do |e|
       case e.name
       when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc', 'monospace'
+      when 'display-quote'
       when 'styled-content'
       when 'xref', 'ext-link', 'uri', 'named-content', 'email'
       when 'list' # PMC4114466, TODO: list-type=order
@@ -408,6 +409,7 @@ class DocSequencerPMC
       when 'statement' # TODO: check what it is
       when 'inline-graphic', 'disp-formula', 'inline-formula' # TODO: check if it can be ignored.
       when 'funding-source' # PMC7189856
+      when 'boxed-text'
       else
         raise RuntimeError, "a unexpected element in p: #{e.name}"
       end
