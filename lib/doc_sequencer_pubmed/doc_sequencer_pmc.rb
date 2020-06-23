@@ -400,14 +400,14 @@ class DocSequencerPMC
     node.each_element do |e|
       case e.name
       when 'italic', 'bold', 'sup', 'sub', 'underline', 'sc', 'monospace'
-      when 'display-quote'
+      when 'disp-quote'
       when 'styled-content'
       when 'xref', 'ext-link', 'uri', 'named-content', 'email'
       when 'list' # PMC4114466, TODO: list-type=order
       when 'fig', 'table-wrap', 'fig-group'
       when 'graphic' # PMC3417534
       when 'statement' # TODO: check what it is
-      when 'inline-graphic', 'disp-formula', 'inline-formula' # TODO: check if it can be ignored.
+      when 'inline-graphic', 'disp-formula', 'disp-formula-group', 'math', 'inline-formula' # TODO: check if it can be ignored.
       when 'funding-source' # PMC7189856
       when 'boxed-text'
       else
