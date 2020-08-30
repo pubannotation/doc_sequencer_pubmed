@@ -75,9 +75,7 @@ class DocSequencerPubMedWS < Sinatra::Base
 			raise ArgumentError, "Unknown sourcedb: #{sourcedb}."
 		end
 
-		result = {}
-		result[:docs] = divs unless divs.nil? || divs.empty?
-		result[:messages] = messages unless messages.nil? || messages.empty?
+		result = {docs:divs, messages: messages}
 
 		headers \
 			'Content-Type' => 'application/json'
