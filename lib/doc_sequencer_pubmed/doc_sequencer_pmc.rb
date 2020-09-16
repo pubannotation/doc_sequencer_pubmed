@@ -71,15 +71,24 @@ class DocSequencerPMC
 		articles = parsed.find('/pmc-articleset/article')
 
 		docs = articles.map do |article|
-			begin
-				pmcid = get_id(article)
-				comment_node = article.find_first('.//comment()')
-				raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment_node && comment_node.content =~ /The publisher of this article does not allow/
-				text, divisions, styles = get_fulltext(article)
-				source_url = 'https://www.ncbi.nlm.nih.gov/pmc/' + pmcid
-				{sourcedb:'PMC', sourceid:pmcid, source_url: source_url, text:text, divisions: divisions, typesettings: styles}
-			rescue => e
-				@messages << e.message
+			pmcid = begin
+				get_id(article)
+			rescue
+				@messages << {body: "Could not get the PMCID: " + e.message}
+				nil
+			end
+			if pmcid
+				begin
+					comment_node = article.find_first('.//comment()')
+					raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment_node && comment_node.content =~ /The publisher of this article does not allow/
+					text, divisions, styles = get_fulltext(article)
+					source_url = 'https://www.ncbi.nlm.nih.gov/pmc/' + pmcid
+					{sourcedb:'PMC', sourceid:pmcid, source_url: source_url, text:text, divisions: divisions, typesettings: styles}
+				rescue => e
+					@messages << {sourcedb:'PMC', sourceid:pmcid, body:e.message}
+					nil
+				end
+			else
 				nil
 			end
 		end.compact
