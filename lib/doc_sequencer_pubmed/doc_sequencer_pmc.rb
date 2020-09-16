@@ -147,7 +147,7 @@ class DocSequencerPMC
 	end
 
 	def get_body_text(article, base_offset = 0)
-		bodies = article.find('.//body')
+		bodies = article.find('./body')
 		raise 'Multiple bodies in an article' unless bodies.length == 1
 		get_text(bodies.first, base_offset)
 	end
