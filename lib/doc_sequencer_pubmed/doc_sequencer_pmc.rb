@@ -143,6 +143,19 @@ class DocSequencerPMC
 		divisions += _divisions
 		styles += _styles
 
+		# float group
+		_text, _divisions, _styles = get_float_captions(article, text.length + 2)
+
+		unless _text.empty?
+			_text.chomp!
+
+			text += "\n\n"
+			text += _text
+
+			divisions += _divisions
+			styles += _styles
+		end
+
 		[text, divisions, styles]
 	end
 
@@ -150,6 +163,12 @@ class DocSequencerPMC
 		bodies = article.find('./body')
 		raise 'Multiple bodies in an article' unless bodies.length == 1
 		get_text(bodies.first, base_offset)
+	end
+
+	def get_float_captions(article, base_offset = 0)
+		fgroups = article.find('./floats-group')
+		raise 'Multiple float groups in an article' unless fgroups.length == 1
+		get_text(fgroups.first, base_offset)
 	end
 
 	def get_titles(article, base_offset = 0)
@@ -242,7 +261,7 @@ class DocSequencerPMC
 					_beg = text.length
 
 					_text, _divisions, _styles = get_text(e, _beg)
-					_text.chomp!
+					_text.rstrip!
 					next if _text.empty?
 
 					text += _text
