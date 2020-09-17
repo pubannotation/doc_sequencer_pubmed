@@ -172,7 +172,7 @@ class DocSequencerPMC
 
 	def get_float_captions(article, base_offset = 0)
 		fgroups = article.find('./floats-group')
-		raise 'Multiple float groups in an article' unless fgroups.length > 1
+		raise 'Multiple float groups in an article' if fgroups.length > 1
 		return ['', [], []] if fgroups.length == 0
 		get_text(fgroups.first, base_offset)
 	end
