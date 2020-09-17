@@ -86,6 +86,7 @@ class DocSequencerPMC
 				begin
 					comment_node = article.find_first('.//comment()')
 					raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment_node && comment_node.content =~ /The publisher of this article does not allow/
+
 					text, divisions, styles = get_fulltext(article)
 					source_url = 'https://www.ncbi.nlm.nih.gov/pmc/' + pmcid
 					{sourcedb:'PMC', sourceid:pmcid, source_url: source_url, text:text, divisions: divisions, typesettings: styles}
@@ -117,7 +118,7 @@ class DocSequencerPMC
 
 		# titles
 		_text, _divisions, _styles = get_titles(article)
-		_text.chomp!
+		_text.rstrip!
 		text += _text
 		divisions += _divisions
 		styles += _styles
@@ -126,10 +127,10 @@ class DocSequencerPMC
 
 		# abstracts
 		_text, _divisions, _styles = get_abstracts(article, text.length)
+		_text.rstrip!
 
 		# There are cases where there is no abstract
 		unless _text.empty?
-			_text.chomp!
 			text += _text
 			divisions += _divisions
 			styles += _styles
@@ -140,11 +141,7 @@ class DocSequencerPMC
 		# body text
 		_text, _divisions, _styles = get_body_text(article, text.length)
 
-		_beg = text.length
 		text += _text
-		_end = text.length
-
-		divisions << {span:{begin:_beg, end:_end}, label:'Body'}
 		divisions += _divisions
 		styles += _styles
 
@@ -165,14 +162,62 @@ class DocSequencerPMC
 	end
 
 	def get_body_text(article, base_offset = 0)
+
 		bodies = article.find('./body')
-		raise 'Multiple bodies in an article' unless bodies.length == 1
-		get_text(bodies.first, base_offset)
+		case bodies.length
+		when 0
+			subarticles = article.find('./sub-article')
+			if subarticles.length > 0
+				get_subarticles(subarticles, base_offset)
+			else
+				raise 'No body or sub-article in the article'
+			end
+		when 1
+			_text, _divisions, _styles = get_text(bodies.first)
+			_text.rstrip!
+
+			divisions = [{span:{begin:0, end:_text.length}, label:'body'}] + _divisions
+
+			adjust_offsets!(divisions, base_offset)
+			adjust_offsets!(_styles, base_offset)
+
+			[_text, divisions, _styles]
+		else
+			raise 'Multiple bodies in the article'
+		end
+	end
+
+	def get_subarticles(articles, base_offset = 0)
+		text = ''
+		divisions = []
+		styles = []
+
+		return [text, divisions, styles] if articles.nil? || articles.empty?
+
+		articles.each do |article|
+			text += "\n\n" unless text.empty?
+
+			_beg = text.length
+			_text, _divisions, _styles = get_text(article, _beg)
+			_text.rstrip!
+
+			text += _text
+			_end = text.length
+
+			divisions << {span:{begin:_beg, end:_end}, label:'sub-article'}
+			divisions += _divisions
+			styles += _styles
+		end
+
+		adjust_offsets!(divisions, base_offset)
+		adjust_offsets!(styles, base_offset)
+
+		[text, divisions, styles]
 	end
 
 	def get_float_captions(article, base_offset = 0)
 		fgroups = article.find('./floats-group')
-		raise 'Multiple float groups in an article' if fgroups.length > 1
+		raise 'Multiple float groups in the article' if fgroups.length > 1
 		return ['', [], []] if fgroups.length == 0
 		get_text(fgroups.first, base_offset)
 	end
@@ -182,18 +227,14 @@ class DocSequencerPMC
 		divisions = []
 		styles = []
 
-		titles = article.find('.//front/article-meta/title-group')
+		titles = article.find('./front/article-meta/title-group')
 		titles.each do |title|
-			text.rstrip!
 			text += "\n" unless text.empty?
-			_beg = text.length
 
-			_text, _divisions, _styles = get_text(title, _beg)
+			_text, _divisions, _styles = get_text(title, text.length)
+			_text.rstrip!
 
 			text += _text
-			_end = text.length
-
-			divisions << {span:{begin:_beg, end:_end}, label:'Title'}
 			divisions += _divisions
 			styles += _styles
 		end
@@ -209,23 +250,23 @@ class DocSequencerPMC
 		divisions = []
 		styles = []
 
-		abstracts = article.find('.//front/article-meta/abstract')
+		abstracts = article.find('./front/article-meta/abstract')
 
 		# There are cases where there is no abstract (PMC3370949)
 		return [text, divisions, styles] if abstracts.nil? || abstracts.empty?
 
 		abstracts.each do |abstract|
-			text.rstrip!
 			text += "\n\n" unless text.empty?
 			text += "Abstract\n" if abstract['abstract-type'] == nil
 
 			_beg = text.length
 			_text, _divisions, _styles = get_text(abstract, _beg)
+			_text.rstrip!
 
 			text += _text
 			_end = text.length
 
-			divisions << {span:{begin:_beg, end:_end}, label:'Abstract'}
+			divisions << {span:{begin:_beg, end:_end}, label:'abstract'}
 			divisions += _divisions
 			styles += _styles
 		end
@@ -255,7 +296,7 @@ class DocSequencerPMC
 			# text layout control
 			if e.node_type_name == 'element'
 				case e.name
-				when *['table', 'alt-text']
+				when *['table', 'alt-text', 'contrib-group']
 					# skip the element
 
 				when *['sec', 'table-wrap', 'fig']
@@ -275,11 +316,11 @@ class DocSequencerPMC
 
 					obj = case e.name
 					when 'sec'
-						'Section'
+						'sec'
 					when 'table-wrap'
-						'Table caption'
+						'table caption'
 					when 'fig'
-						'Figure caption'
+						'figure caption'
 					else
 						nil
 					end
@@ -288,26 +329,19 @@ class DocSequencerPMC
 					divisions += _divisions
 					styles += _styles
 
-				when *['title', 'p']
-					text.sub!(/\n +/, "\n")
+				when *['title', 'article-title', 'subtitle', 'alt-title', 'p', 'body']
+					text.sub!(/\n +$/, "\n")
 					text.sub!(/^ +/, "")
 
-					_beg = text.length
-					_text, _divisions, _styles = get_text(e, _beg)
-					_text.chomp!
+					_text, _divisions, _styles = get_text(e, text.length)
+					_text.rstrip!
 					next if _text.empty?
 
+					_beg = text.length
 					text += _text
 					_end = text.length
 
-					obj = case e.name
-					when 'title'
-						'Title'
-					else
-						nil
-					end
-
-					divisions << {span:{begin:_beg, end:_end}, label:obj} unless obj.nil?
+					divisions << {span:{begin:_beg, end:_end}, label:e.name}
 					divisions += _divisions
 					styles += _styles
 					text += "\n"
@@ -356,7 +390,6 @@ class DocSequencerPMC
 					text.sub!(/^ +$/, "")
 
 					_text, _divisions, _styles = get_text(e, text.length)
-					_text.chomp!
 					next if _text.empty?
 
 					text += _text
@@ -380,7 +413,7 @@ class DocSequencerPMC
 		[text, divisions, styles]
 	end
 
-	def adjust_offsets!(annotations, base_offset)
+	def adjust_offsets!(annotations, base_offset = 0)
 		annotations.each do |annotation|
 			annotation[:span][:begin] += base_offset
 			annotation[:span][:end] += base_offset
