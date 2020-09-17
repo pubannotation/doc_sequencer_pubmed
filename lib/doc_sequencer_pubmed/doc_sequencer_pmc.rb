@@ -29,6 +29,11 @@ class DocSequencerPMC
 		@messages = []
 
 		xml_docs = retrieve_docs(ids)
+
+		# puts '-----'
+		# puts xml_docs
+		# puts '-----'
+
 		docs = extract_docs(xml_docs)
 
 		return_ids = docs.map{|doc| doc[:sourceid]}.uniq
@@ -167,7 +172,8 @@ class DocSequencerPMC
 
 	def get_float_captions(article, base_offset = 0)
 		fgroups = article.find('./floats-group')
-		raise 'Multiple float groups in an article' unless fgroups.length == 1
+		raise 'Multiple float groups in an article' unless fgroups.length > 1
+		return ['', [], []] if fgroups.length == 0
 		get_text(fgroups.first, base_offset)
 	end
 
