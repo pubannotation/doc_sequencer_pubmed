@@ -170,7 +170,8 @@ class DocSequencerPMC
 			if subarticles.length > 0
 				get_subarticles(subarticles, base_offset)
 			else
-				raise 'No body or sub-article in the article'
+				# raise 'No body or sub-article in the article'
+				['', [], []]
 			end
 		when 1
 			_text, _divisions, _styles = get_text(bodies.first)
