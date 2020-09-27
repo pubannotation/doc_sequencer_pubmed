@@ -205,6 +205,7 @@ class DocSequencerPMC
 		back = article.find('./back')
 		case back.length
 		when 0
+			['', [], []]
 		when 1
 			_text, _divisions, _styles = get_text(back.first)
 			_text.rstrip!
