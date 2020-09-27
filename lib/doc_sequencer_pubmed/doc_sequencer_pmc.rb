@@ -145,6 +145,19 @@ class DocSequencerPMC
 		divisions += _divisions
 		styles += _styles
 
+		# back text
+		_text, _divisions, _styles = get_back_text(article, text.length + 2)
+
+		unless _text.empty?
+			_text.chomp!
+
+			text += "\n\n"
+			text += _text
+
+			divisions += _divisions
+			styles += _styles
+		end
+
 		# float group
 		_text, _divisions, _styles = get_float_captions(article, text.length + 2)
 
@@ -185,6 +198,25 @@ class DocSequencerPMC
 			[_text, divisions, _styles]
 		else
 			raise 'Multiple bodies in the article'
+		end
+	end
+
+	def get_back_text(article, base_offset = 0)
+		back = article.find('./back')
+		case back.length
+		when 0
+		when 1
+			_text, _divisions, _styles = get_text(back.first)
+			_text.rstrip!
+
+			divisions = [{span:{begin:0, end:_text.length}, label:'back'}] + _divisions
+
+			adjust_offsets!(divisions, base_offset)
+			adjust_offsets!(_styles, base_offset)
+
+			[_text, divisions, _styles]
+		else
+			raise 'Multiple back matters in the article'
 		end
 	end
 
@@ -297,14 +329,28 @@ class DocSequencerPMC
 			# text layout control
 			if e.node_type_name == 'element'
 				case e.name
-				when *['table', 'alt-text', 'contrib-group', 'object-id']
-					# skip the element
+				when *['alt-text', 'contrib-group', 'object-id', 'ref-list']
+					# This group of elements will be skipped
 
-				when *['sec', 'table-wrap', 'fig']
+				when *['app-group']
+					text.rstrip!
+					unless text.empty?
+						text += "\n\n"
+					end
+
+					_text, _divisions, _styles = get_text(e, text.length)
+					_text.rstrip!
+					next if _text.empty?
+
+					text += _text
+					divisions += _divisions
+					styles += _styles
+
+				when *['sec', 'table-wrap', 'fig', 'ack', 'notes', 'app']
 					text.rstrip!
 					unless text.empty?
 						text += "\n"
-						text += "\n" if e.name == 'sec'
+						text += "\n" if ['sec', 'ack', 'notes', 'app'].include? e.name
 					end
 					_beg = text.length
 
@@ -316,12 +362,16 @@ class DocSequencerPMC
 					_end = text.length
 
 					obj = case e.name
-					when 'sec'
-						'sec'
+					when *['sec', 'ack', 'notes']
+						e.name
+					when 'ack'
+						'acknowledgement'
+					when 'app'
+						'appendix'
 					when 'table-wrap'
-						'table caption'
+						'table-wrap'
 					when 'fig'
-						'figure caption'
+						'figure'
 					else
 						nil
 					end
@@ -330,7 +380,31 @@ class DocSequencerPMC
 					divisions += _divisions
 					styles += _styles
 
-				when *['title', 'article-title', 'subtitle', 'alt-title', 'p', 'body']
+				when *['title', 'article-title', 'subtitle', 'alt-title', 'p', 'body', 'caption', 'table-wrap-foot', 'fn', 'table', 'tr']
+					text.sub!(/\n +$/, "\n")
+					text.sub!(/^ +/, "")
+
+					_text, _divisions, _styles = get_text(e, text.length)
+					_text.rstrip!
+					next if _text.empty?
+
+					_beg = text.length
+					text += _text
+					_end = text.length
+
+					obj = case e.name
+					when 'fn'
+						'footnote'
+					else
+						e.name
+					end
+
+					divisions << {span:{begin:_beg, end:_end}, label:obj}
+					divisions += _divisions
+					styles += _styles
+					text += "\n"
+
+				when *['label', 'th', 'td']
 					text.sub!(/\n +$/, "\n")
 					text.sub!(/^ +/, "")
 
@@ -345,19 +419,7 @@ class DocSequencerPMC
 					divisions << {span:{begin:_beg, end:_end}, label:e.name}
 					divisions += _divisions
 					styles += _styles
-					text += "\n"
-
-				when *['fn']
-					text += ' ' unless text[-1] == ' ' || text[-1] == "\n"
-					offset = text.length
-					_text, _divisions, _styles = get_text(e, offset)
-					_text.chomp!
-					next if _text.empty?
-
-					text += _text
-
-					divisions += _divisions
-					styles += _styles
+					text += ' '
 
 				when *['italic', 'bold', 'sub', 'sup']
 					_text, _divisions, _styles = get_text(e, text.length)
@@ -394,12 +456,6 @@ class DocSequencerPMC
 					next if _text.empty?
 
 					text += _text
-
-					if e.name == 'label' && !text.empty?
-						# text += '.' if text[-1] =~ /\b[0-9a-zA-Z]/
-						text += ' '
-					end
-
 					divisions += _divisions
 					styles += _styles
 				end
