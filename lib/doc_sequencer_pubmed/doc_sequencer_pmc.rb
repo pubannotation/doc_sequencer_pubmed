@@ -330,7 +330,7 @@ class DocSequencerPMC
 			# text layout control
 			if e.node_type_name == 'element'
 				case e.name
-				when *['alt-text', 'contrib-group', 'object-id', 'ref-list']
+				when *['alt-text', 'contrib-group', 'object-id', 'ref-list', 'tex-math']
 					# This group of elements will be skipped
 
 				when *['app-group']
