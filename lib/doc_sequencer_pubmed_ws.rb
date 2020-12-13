@@ -25,10 +25,11 @@ class DocSequencerPubMedWS < Sinatra::Base
 
 		sourcedb = params['sourcedb'].strip
 		sourceid = params['sourceid'].strip
+		language = params['language']
 
 		divs, messages =
 			if (sourcedb.downcase == 'pubmed')
-				[pubmed.get_doc(sourceid), pubmed.messages]
+				[pubmed.get_doc(sourceid, language), pubmed.messages]
 			elsif (sourcedb.downcase == 'pmc')
 				[pmc.get_doc(sourceid), pmc.messages]
 			elsif (sourcedb.downcase == 'firstauthor')
@@ -62,9 +63,10 @@ class DocSequencerPubMedWS < Sinatra::Base
 		raise ArgumentError, "No sourceid is supplied." if sourceids.nil? || sourceids.empty?
 
 		sourcedb = params['sourcedb'].strip
+		language = params['language']
 
 		divs, messages = if (sourcedb.downcase == 'pubmed')
-			[pubmed.get_docs(sourceids), pubmed.messages]
+			[pubmed.get_docs(sourceids, language), pubmed.messages]
 		elsif (sourcedb.downcase == 'pmc')
 			[pmc.get_docs(sourceids), pmc.messages]
 		elsif (sourcedb.downcase == 'firstauthor')
