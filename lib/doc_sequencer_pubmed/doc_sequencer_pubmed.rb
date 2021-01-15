@@ -167,6 +167,9 @@ class DocSequencerPubMed
 		o = otherAbstractText_nodes
 				.map{|node| node['Label'].nil? ? node.content.strip : node['Label'] + ': ' + node.content.strip}
 				.join("\n")
+
+		raise ArgumentError, "The document does not have an abstract in the specified language: #{language}." if o.empty?
+		o
 	end
 
 end
