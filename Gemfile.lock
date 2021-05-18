@@ -9,12 +9,14 @@ GEM
     mini_portile2 (2.4.0)
     mustermann (1.0.3)
     net-http-persistent (2.9.4)
+    nio4r (2.5.7)
     nokogiri (1.9.1)
       mini_portile2 (~> 2.4.0)
     oga (2.15)
       ast
       ruby-ll (~> 2.1)
-    puma (3.12.0)
+    puma (4.3.8)
+      nio4r (~> 2.0)
     rack (2.0.6)
     rack-protection (2.0.4)
       rack
