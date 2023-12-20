@@ -9,6 +9,7 @@ class DocSequencerPubMed
 	MAX_NUM_ID = 100
 
 	def initialize
+		raise ArgumentError, "Could not find 'NCBI_API_KEY'" unless ENV.has_key? 'NCBI_API_KEY'
 		base_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 		ncbi_api_key = ENV['NCBI_API_KEY']
 		@esearch_url = base_url + "esearch.fcgi?db=pubmed&usehistory=y&api_key=#{ncbi_api_key}"
@@ -55,7 +56,7 @@ class DocSequencerPubMed
 			sourcedb  = 'PubMed'
 			sourcedb += '-' + language unless language.nil?
 			missing_ids.each do |id|
-				@messages << {sourcedb:sourcedb, sourceid:id, body:"Could not get the document."}
+				@messages << {sourcedb:sourcedb, sourceid:id, body:"Could not get the document from the server."}
 			end
 		end
 
@@ -68,7 +69,6 @@ class DocSequencerPubMed
 		query = ids.map{|id| id + '[uid]'}.join('+OR+')
 		uri = URI @esearch_url + '&term=' + query
 		response = @http.request uri
-
 		parser = XML::Parser.string(response.body, :encoding => XML::Encoding::UTF_8)
 		parsed = parser.parse
 		count = parsed.find_first('Count').content.to_i
