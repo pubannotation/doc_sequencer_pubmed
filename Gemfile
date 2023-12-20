@@ -1,12 +1,12 @@
 source 'https://rubygems.org'
-ruby '2.5.5'
+ruby '3.2.2'
 
 gem 'sinatra'
 
-gem 'net-http-persistent', '~> 2.9', '>= 2.9.4'
+gem 'net-http-persistent'
 gem 'libxml-ruby'
 gem 'nokogiri'
-gem 'oga', '~> 2.2'
+gem 'oga'
 
 group :production do
 	gem 'unicorn'
