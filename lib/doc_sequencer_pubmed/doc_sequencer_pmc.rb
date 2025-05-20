@@ -88,8 +88,9 @@ class DocSequencerPMC
 					raise ArgumentError, "The article, #{pmcid}, is not within Open Access Subset." if comment_node && comment_node.content =~ /The publisher of this article does not allow/
 
 					text, divisions, styles = get_fulltext(article)
-					source_url = 'https://www.ncbi.nlm.nih.gov/pmc/' + pmcid
-					{sourcedb:'PMC', sourceid:pmcid, source_url: source_url, text:text, divisions: divisions, typesettings: styles}
+					source_url = 'https://pmc.ncbi.nlm.nih.gov/articles/' + pmcid
+					sourceid = pmcid.delete_prefix("PMC")
+					{sourcedb:'PMC', sourceid:sourceid, source_url: source_url, text:text, divisions: divisions, typesettings: styles}
 				rescue => e
 					@messages << {sourcedb:'PMC', sourceid:pmcid, body:e.message}
 					nil
@@ -104,7 +105,7 @@ class DocSequencerPMC
 
 	def get_id(article)
 		pmcid = begin
-			pmcid_nodes = article.find('.//front/article-meta/article-id[@pub-id-type="pmc"]')
+			pmcid_nodes = article.find('.//front/article-meta/article-id[@pub-id-type="pmcid"]')
 			raise RuntimeError, "Encountered an article with multiple pmcids" if pmcid_nodes.size > 1
 			raise RuntimeError, "Encountered an article with no pmcid" if pmcid_nodes.size < 1
 			pmcid_nodes.first.content.strip
