@@ -78,8 +78,8 @@ class DocSequencerPMC
 		docs = articles.map do |article|
 			pmcid = begin
 				get_id(article)
-			rescue
-				@messages << {body: "Could not get the PMCID: " + e.message}
+			rescue => e
+				@messages << {body: "Could not get the doc of the PMCID: " + e.message}
 				nil
 			end
 			if pmcid
