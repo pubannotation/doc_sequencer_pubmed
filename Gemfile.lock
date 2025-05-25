@@ -2,77 +2,87 @@ GEM
   remote: https://rubygems.org/
   specs:
     ansi (1.5.0)
-    ast (2.4.2)
+    ast (2.4.3)
     base64 (0.2.0)
-    connection_pool (2.4.1)
-    diff-lcs (1.5.1)
+    connection_pool (2.5.3)
+    diff-lcs (1.6.2)
     kgio (2.11.4)
-    libxml-ruby (5.0.3)
-    mustermann (3.0.0)
+    libxml-ruby (5.0.4)
+    logger (1.7.0)
+    mustermann (3.0.3)
       ruby2_keywords (~> 0.0.1)
-    net-http-persistent (4.0.2)
+    net-http-persistent (4.0.5)
       connection_pool (~> 2.2)
-    nio4r (2.7.3)
-    nokogiri (1.16.6-aarch64-linux)
+    nio4r (2.7.4)
+    nokogiri (1.18.8-aarch64-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.16.6-arm-linux)
+    nokogiri (1.18.8-aarch64-linux-musl)
       racc (~> 1.4)
-    nokogiri (1.16.6-arm64-darwin)
+    nokogiri (1.18.8-arm-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.16.6-x86-linux)
+    nokogiri (1.18.8-arm-linux-musl)
       racc (~> 1.4)
-    nokogiri (1.16.6-x86_64-darwin)
+    nokogiri (1.18.8-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.16.6-x86_64-linux)
+    nokogiri (1.18.8-x86_64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.18.8-x86_64-linux-gnu)
+      racc (~> 1.4)
+    nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
     oga (3.4)
       ast
       ruby-ll (~> 2.1)
-    puma (6.4.2)
+    puma (6.6.0)
       nio4r (~> 2.0)
-    racc (1.8.0)
-    rack (3.1.7)
-    rack-protection (4.0.0)
+    racc (1.8.1)
+    rack (3.1.15)
+    rack-protection (4.1.1)
       base64 (>= 0.1.0)
+      logger (>= 1.6.0)
       rack (>= 3.0.0, < 4)
-    rack-session (2.0.0)
+    rack-session (2.1.1)
+      base64 (>= 0.1.0)
       rack (>= 3.0.0)
     raindrops (0.20.1)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
       rspec-mocks (~> 3.13.0)
-    rspec-core (3.13.0)
+    rspec-core (3.13.3)
       rspec-support (~> 3.13.0)
-    rspec-expectations (3.13.1)
+    rspec-expectations (3.13.4)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.1)
+    rspec-mocks (3.13.4)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-support (3.13.1)
+    rspec-support (3.13.3)
     ruby-ll (2.1.3)
       ansi
       ast
     ruby2_keywords (0.0.5)
-    sinatra (4.0.0)
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
       mustermann (~> 3.0)
       rack (>= 3.0.0, < 4)
-      rack-protection (= 4.0.0)
+      rack-protection (= 4.1.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
-    tilt (2.4.0)
+    tilt (2.6.0)
     unicorn (6.1.0)
       kgio (~> 2.6)
       raindrops (~> 0.7)
 
 PLATFORMS
-  aarch64-linux
-  arm-linux
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
   arm64-darwin
-  x86-linux
   x86_64-darwin
-  x86_64-linux
+  x86_64-linux-gnu
+  x86_64-linux-musl
 
 DEPENDENCIES
   libxml-ruby
@@ -85,7 +95,7 @@ DEPENDENCIES
   unicorn
 
 RUBY VERSION
-   ruby 3.3.4p94
+   ruby 3.3.7p123
 
 BUNDLED WITH
    2.5.11
