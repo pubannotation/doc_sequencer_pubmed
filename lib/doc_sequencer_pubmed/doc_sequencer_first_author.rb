@@ -16,8 +16,11 @@ class DocSequencerFirstAuthor
 
     source_url = @base_url + docid
     html_doc = retrieve_doc(source_url)
-    divs = extract_divs(html_doc)
-    divs.map{|div| div.merge({sourcedb:'FirstAuthor', sourceid:docid, source_url: source_url})}
+    html_doc = modify_html(html_doc)
+    # puts html_doc
+    # divs = extract_divs(html_doc)
+    text = extract_text(html_doc)
+    {sourcedb:'FirstAuthors', sourceid:docid, source_url: source_url, text:text}
   end
 
   def get_docs (docids)
@@ -27,11 +30,105 @@ class DocSequencerFirstAuthor
 
   private
 
+  def modify_html(html_doc)
+    html_doc.sub!(/<div class="article_thumb">\n/, "<div class=\"article_thumb\"><div class=\"preamble\">\n")
+    html_doc.gsub!(/<h2/, '</div><div class="section"><h2 ')
+    html_doc.gsub!(/ 2\.1 (.+)<\/a>/) {" 2.1 #{$1}</a></div>"}
+  end
+
   def retrieve_doc (source_url)
     uri = URI source_url
     result = @http.request uri
     raise RuntimeError, "Could not get the document from the server. Below was the response of the server\n#{result.message}" unless result.code == '200'
     result.body
+  end
+
+
+  def extract_text (html_doc)
+    return [] if html_doc.nil?
+
+    doc = Nokogiri::HTML(html_doc)
+
+
+    title   = doc.xpath('//div[@id="contentleft"]/div[contains(@class, "article")]/h1')
+    raise RuntimeError, "Multiple titles." if title.length > 1
+    title = title.first
+
+    article = doc.xpath('//div[@id="contentleft"]/div[contains(@class, "article")]/div[contains(@class, "article_thumb")]')[1]
+
+    text = get_text(article)
+  end
+
+  def get_text(article)
+    text_preamble = ''
+    text_sections = []
+
+    article.traverse do |node|
+      if node.name == 'div'
+        if node['class'] == 'preamble'
+          text_preamble = get_text_from_preamble(node)
+        end
+
+        if node['class'] == 'section'
+          text_sections << get_text_from_section(node)
+        end
+      end
+
+    end
+
+    text =''
+    text += text_preamble + "\n\n" + text_sections.join("\n\n")
+    text
+  end
+
+
+  def get_text_from_preamble(node)
+    authors = ''
+    affiliations = ''
+    email = ''
+    origin = ''
+
+    collect = ''
+    node.traverse do |node|
+      # authors
+      if authors.empty? && node.name == 'strong'
+        authors = node.to_s
+      end
+
+      if !authors.empty? && affiliations.empty?
+        if node.name == 'sup'
+          collect += node.to_s
+        end
+        if node.text? && node.content !~ /^[1-9]$/
+          collect += node.to_s
+        end
+      end
+
+      if affiliations.empty? && !collect.empty? && node.name == 'br'
+        affiliations = collect
+        collect = ''
+      end
+
+      if !affiliations.empty? && email.empty? && node.name == 'a'
+        email += node.attr('href').to_s + " (#{node.content})"
+      end
+
+      if !email.empty? && origin.empty? && node.name == 'div'
+        origin += node.inner_html
+      end
+
+    end
+
+    text  = authors
+    text += "\n\n" + affiliations
+    text += "\n\n" + email
+    text += "\n\n" + origin
+
+    text
+  end
+
+  def get_text_from_section(node)
+    node.inner_html
   end
 
 
@@ -41,6 +138,7 @@ class DocSequencerFirstAuthor
     doc = Nokogiri::HTML(html_doc)
     divs = get_divs(doc)
   end
+
 
 
   def get_divs(doc)
@@ -97,7 +195,8 @@ class DocSequencerFirstAuthor
             sec[:heading] = node.content.strip
             sec[:body] = node.content.strip
           end
-        elsif sec[:heading] && node.name == 'p'
+        # elsif sec[:heading] && node.name == 'p'
+        elsif sec[:heading]
           sec[:body] += "\n" + node.content.strip
         end
       end
@@ -127,7 +226,7 @@ if __FILE__ == $0
   ARGV.each do |id|
     faseq = DocSequencerFirstAuthor.new
     fadoc = faseq.get_docs([id])
-    p fadoc
+    pp fadoc
   end
 
 end

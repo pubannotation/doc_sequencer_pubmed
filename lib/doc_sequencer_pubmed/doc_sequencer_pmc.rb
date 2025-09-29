@@ -36,9 +36,23 @@ class DocSequencerPMC
 
 		docs = extract_docs(xml_docs)
 
+		# Get IDs that were successfully processed
 		return_ids = docs.map{|doc| doc[:sourceid]}.uniq
-		if return_ids.length < ids.length
-			missing_ids = ids - return_ids
+
+		# Get IDs that already have specific error messages
+		error_ids = @messages.map{|msg|
+			if msg[:sourceid]
+				# Handle both PMC4874918 and 4874918 formats
+				msg[:sourceid].to_s.delete_prefix("PMC")
+			end
+		}.compact.uniq
+
+		# Combined processed IDs (successful + with error messages)
+		processed_ids = (return_ids + error_ids).uniq
+
+		# Only add generic error messages for IDs that haven't been processed at all
+		if processed_ids.length < ids.length
+			missing_ids = ids - processed_ids
 			missing_ids.each do |id|
 				@messages << {sourcedb:'PMC', sourceid:id, body:"Could not get the document."}
 			end

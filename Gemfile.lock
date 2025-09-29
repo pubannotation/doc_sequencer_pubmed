@@ -3,40 +3,40 @@ GEM
   specs:
     ansi (1.5.0)
     ast (2.4.3)
-    base64 (0.2.0)
-    connection_pool (2.5.3)
+    base64 (0.3.0)
+    connection_pool (2.5.4)
     diff-lcs (1.6.2)
     kgio (2.11.4)
-    libxml-ruby (5.0.4)
+    libxml-ruby (5.0.5)
     logger (1.7.0)
-    mustermann (3.0.3)
+    mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
-    net-http-persistent (4.0.5)
-      connection_pool (~> 2.2)
+    net-http-persistent (4.0.6)
+      connection_pool (~> 2.2, >= 2.2.4)
     nio4r (2.7.4)
-    nokogiri (1.18.8-aarch64-linux-gnu)
+    nokogiri (1.18.10-aarch64-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.18.8-aarch64-linux-musl)
+    nokogiri (1.18.10-aarch64-linux-musl)
       racc (~> 1.4)
-    nokogiri (1.18.8-arm-linux-gnu)
+    nokogiri (1.18.10-arm-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.18.8-arm-linux-musl)
+    nokogiri (1.18.10-arm-linux-musl)
       racc (~> 1.4)
-    nokogiri (1.18.8-arm64-darwin)
+    nokogiri (1.18.10-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.18.8-x86_64-darwin)
+    nokogiri (1.18.10-x86_64-darwin)
       racc (~> 1.4)
-    nokogiri (1.18.8-x86_64-linux-gnu)
+    nokogiri (1.18.10-x86_64-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.18.8-x86_64-linux-musl)
+    nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
     oga (3.4)
       ast
       ruby-ll (~> 2.1)
-    puma (6.6.0)
+    puma (7.0.4)
       nio4r (~> 2.0)
     racc (1.8.1)
-    rack (3.1.15)
+    rack (3.2.1)
     rack-protection (4.1.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
@@ -49,20 +49,20 @@ GEM
       redis-client (>= 0.22.0)
     redis-client (0.26.1)
       connection_pool
-    rspec (3.13.0)
+    rspec (3.13.1)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
       rspec-mocks (~> 3.13.0)
-    rspec-core (3.13.3)
+    rspec-core (3.13.5)
       rspec-support (~> 3.13.0)
-    rspec-expectations (3.13.4)
+    rspec-expectations (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.4)
+    rspec-mocks (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-support (3.13.3)
-    ruby-ll (2.1.3)
+    rspec-support (3.13.6)
+    ruby-ll (2.1.4)
       ansi
       ast
     ruby2_keywords (0.0.5)
@@ -73,7 +73,7 @@ GEM
       rack-protection (= 4.1.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
-    tilt (2.6.0)
+    tilt (2.6.1)
     unicorn (6.1.0)
       kgio (~> 2.6)
       raindrops (~> 0.7)
@@ -91,6 +91,7 @@ PLATFORMS
 DEPENDENCIES
   connection_pool
   libxml-ruby
+  logger
   net-http-persistent
   nokogiri
   oga
@@ -101,7 +102,7 @@ DEPENDENCIES
   unicorn
 
 RUBY VERSION
-   ruby 3.3.7p123
+   ruby 3.4.5p51
 
 BUNDLED WITH
-   2.5.11
+   2.6.9

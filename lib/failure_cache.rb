@@ -2,6 +2,7 @@
 require 'redis'
 require 'connection_pool'
 require 'json'
+require_relative 'logging_config'
 
 class FailureCache
 
@@ -18,6 +19,7 @@ class FailureCache
     @redis_pool = ConnectionPool.new(size: pool_size, timeout: 5) do
       Redis.new(url: redis_url || ENV['REDIS_URL'] || 'redis://localhost:6379')
     end
+    @logger = LoggingConfig.get_logger
   end
 
   def check_batch_failures(sourcedb, sourceids, language = nil)
@@ -44,6 +46,7 @@ class FailureCache
             redis.del(keys[index])
             uncached_ids << sourceids[index]
             cached_failures << nil
+            @logger.warn("Invalid cache entry for #{keys[index]}, cleaning up")
           end
         end
       end
@@ -121,38 +124,108 @@ class FailureCache
       total_failures = 0
       error_type_counts = Hash.new(0)
       sourcedb_counts = Hash.new(0)
+      iterations = 0
+      max_iterations = 50  # Conservative limit
+      start_time = Time.now
+      timeout_seconds = 5  # 5 second timeout
 
-      loop do
-        cursor, keys = redis.scan(cursor, match: "*:*", count: 1000)
+      begin
+        loop do
+          iterations += 1
 
-        if keys.any?
-          cached_data = redis.mget(*keys)
-          cached_data.each_with_index do |data, index|
-            next unless data
+          # Safety checks to prevent hangs
+          if iterations > max_iterations
+            @logger.warn "Stats scan exceeded max iterations (#{max_iterations}), collected #{total_failures} entries so far"
+            break
+          end
 
-            begin
-              failure = JSON.parse(data, symbolize_names: true)
-              total_failures += 1
-              error_type_counts[failure[:error_type]] += 1
-              sourcedb_counts[failure[:sourcedb]] += 1
-            rescue JSON::ParserError
-              redis.del(keys[index])
+          if Time.now - start_time > timeout_seconds
+            @logger.warn "Stats scan exceeded timeout (#{timeout_seconds}s), collected #{total_failures} entries so far"
+            break
+          end
+
+          # Use smaller batch size for safety
+          cursor, keys = redis.scan(cursor, match: "*:*", count: 50)
+
+          if keys.any?
+            # Process keys in smaller chunks to avoid blocking
+            keys.each_slice(10) do |key_batch|
+              begin
+                cached_data = redis.mget(*key_batch)
+                cached_data.each_with_index do |data, index|
+                  next unless data
+
+                  begin
+                    failure = JSON.parse(data, symbolize_names: true)
+
+                    # Ensure failure is a hash with expected structure
+                    if failure.is_a?(Hash) &&
+                       failure.has_key?(:error_type) && failure[:error_type] &&
+                       failure.has_key?(:sourcedb) && failure[:sourcedb]
+
+                      total_failures += 1
+                      error_type_counts[failure[:error_type]] += 1
+                      sourcedb_counts[failure[:sourcedb]] += 1
+                    else
+                      # Clean up malformed entries
+                      begin
+                        redis.del(key_batch[index])
+                      rescue => cleanup_error
+                        # Ignore cleanup errors to avoid cascading failures
+                      end
+                    end
+                  rescue JSON::ParserError => json_error
+                    # Clean up invalid JSON entries
+                    begin
+                      redis.del(key_batch[index])
+                    rescue => cleanup_error
+                      # Ignore cleanup errors
+                    end
+                  rescue => parse_error
+                    @logger.warn "Error parsing cached data: #{parse_error.message}"
+                    # Skip this entry but continue processing
+                  end
+                end
+              rescue => batch_error
+                @logger.warn "Error processing key batch: #{batch_error.message}"
+                # Continue with next batch
+              end
             end
           end
+
+          # Break on cursor completion
+          break if cursor == 0 || cursor == "0"
         end
 
-        break if cursor == 0
-      end
-
-      {
-        total_cached_failures: total_failures,
-        by_error_type: error_type_counts,
-        by_sourcedb: sourcedb_counts,
-        redis_info: {
-          used_memory: redis.memory('usage'),
-          total_keys: redis.dbsize
+        {
+          total_cached_failures: total_failures,
+          by_error_type: error_type_counts.to_h,
+          by_sourcedb: sourcedb_counts.to_h,
+          scan_info: {
+            iterations: iterations,
+            duration_seconds: (Time.now - start_time).round(2),
+            completed: cursor == 0 || cursor == "0"
+          },
+          redis_info: {
+            total_keys: redis.dbsize,
+            connection_status: "connected"
+          }
         }
-      }
+
+      rescue => e
+        @logger.error "Error during stats collection: #{e.message}"
+        {
+          error: e.message,
+          partial_results: {
+            total_cached_failures: total_failures,
+            by_error_type: error_type_counts.to_h,
+            by_sourcedb: sourcedb_counts.to_h
+          },
+          redis_info: {
+            connection_status: "error"
+          }
+        }
+      end
     end
   end
 

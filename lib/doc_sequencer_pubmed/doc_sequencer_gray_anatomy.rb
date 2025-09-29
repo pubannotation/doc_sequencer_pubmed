@@ -7,17 +7,18 @@ class DocSequencerGrayAnatomy
   attr_reader :messages
 
   def initialize
-    @base_url = 'https://www.bartleby.com/107/'
+    @base_url = 'https://bartleby.com/lit-hub/anatomy-of-the-human-body/'
     @http = Net::HTTP::Persistent.new
   end
 
   def get_doc(id)
-    raise ArgumentError, "'#{id}' is not a valid ID" unless id =~ /^([1-9][0-9]*)$/
+    # raise ArgumentError, "'#{id}' is not a valid ID" unless id =~ /^([1-9][0-9]*)$/
 
     html_doc = retrieve_doc(id)
     doc = extract_doc(html_doc)
 
     source_url = @base_url + id + '.html'
+
     doc.merge!({sourcedb: 'GrayAnatomy', sourceid:id, source_url: source_url})
 
     doc
@@ -30,6 +31,10 @@ class DocSequencerGrayAnatomy
 
   def retrieve_doc(id)
     uri = URI @base_url + id + '.html'
+
+    puts uri
+    puts "-------"
+
     response = @http.request uri
     raise RuntimeError, "Could not get the document from the server. Below was the response of the server\n#{response.message}" unless response.code == '200'
     response.body

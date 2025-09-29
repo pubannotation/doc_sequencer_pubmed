@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
-ruby '3.3.7'
+ruby '3.4.5'
 
 gem 'sinatra'
 
@@ -22,3 +22,4 @@ end
 
 gem 'redis'
 gem 'connection_pool'
+gem 'logger'
