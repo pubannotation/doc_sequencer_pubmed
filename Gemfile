@@ -19,3 +19,6 @@ end
 group :test do
 	gem 'rspec'
 end
+
+gem 'redis'
+gem 'connection_pool'

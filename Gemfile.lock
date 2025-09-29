@@ -45,6 +45,10 @@ GEM
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
     raindrops (0.20.1)
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.26.1)
+      connection_pool
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -85,11 +89,13 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  connection_pool
   libxml-ruby
   net-http-persistent
   nokogiri
   oga
   puma
+  redis
   rspec
   sinatra
   unicorn
