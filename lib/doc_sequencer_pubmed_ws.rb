@@ -58,7 +58,7 @@ class DocSequencerPubMedWS < Sinatra::Base
 	# Initialize cache and queue
 	@@failure_cache = FailureCache.new
 	@@throttled_queue = ThrottledQueue.new(
-		throttle_delay: ENV.fetch('THROTTLE_DELAY', '2.0').to_f
+		throttle_delay: ENV.fetch('THROTTLE_DELAY', '0.2').to_f
 	)
 
 	configure do
